@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0))
       dompurify:
         specifier: ^3.4.17
         version: 3.4.17
@@ -23,9 +20,6 @@ importers:
       react-router-dom:
         specifier: ^7.18.4
         version: 7.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)
@@ -33,6 +27,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(jiti@2.7.0))
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0))
       '@types/node':
         specifier: ^24.13.3
         version: 24.19.2
@@ -57,6 +54,9 @@ importers:
       globals:
         specifier: ^17.12.0
         version: 17.13.0
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
