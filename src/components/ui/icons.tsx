@@ -37,3 +37,19 @@ export function TrashIcon(props: ComponentProps<'svg'>) {
     </svg>
   )
 }
+
+export function PencilIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...baseProps} {...props}>
+      <path d="M12.5 5.5l2 2M5 15l.8-3.4 8.2-8.2a1.5 1.5 0 0 1 2.1 0l.5.5a1.5 1.5 0 0 1 0 2.1L8.4 14.2z" />
+    </svg>
+  )
+}
+
+export function ArrowLeftIcon(props: ComponentProps<'svg'>) {
+  return (
+    <svg {...baseProps} {...props}>
+      <path d="M16 10H4M9 5l-5 5 5 5" />
+    </svg>
+  )
+}
