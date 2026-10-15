@@ -7,6 +7,8 @@ import { DeleteColumnDialog } from '@/features/columns/DeleteColumnDialog'
 import { useBoard } from '@/store/hooks'
 import { useUIStore } from '@/store/ui/uiStore'
 import NotFoundPage from './NotFoundPage'
+import { CardModalHost } from '@/features/cards/CardModalHost'
+import { DeleteCardDialog } from '@/features/cards/DeleteCardDialog'
 
 export default function BoardPage() {
   const { boardId = '' } = useParams()
@@ -14,11 +16,12 @@ export default function BoardPage() {
   const [announcement, setAnnouncement] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // Leaving the page must not leave a half-open edit or delete prompt behind.
+  // Leaving the page must not leave a half-open edit, dialog, or delete prompt behind.
   useEffect(() => {
     return () => {
       const ui = useUIStore.getState()
       ui.stopEditingColumn()
+      ui.closeCardModal()
       ui.cancelDelete()
     }
   }, [])
@@ -32,9 +35,9 @@ export default function BoardPage() {
     )
   }
 
-  // The deleted column's button is gone, so send focus somewhere stable.
-  function handleColumnDeleted(title: string) {
-    setAnnouncement(`Column ${title} deleted.`)
+  // A deleted item's trigger is gone, so send focus somewhere stable.
+  function handleDeleted(kind: 'Column' | 'Card', title: string) {
+    setAnnouncement(`${kind} ${title} deleted.`)
     headingRef.current?.focus()
   }
 
@@ -86,7 +89,11 @@ export default function BoardPage() {
         </div>
       </div>
 
-      <DeleteColumnDialog onDeleted={handleColumnDeleted} />
+      <CardModalHost onAnnounce={setAnnouncement} />
+      <DeleteColumnDialog
+        onDeleted={(title) => handleDeleted('Column', title)}
+      />
+      <DeleteCardDialog onDeleted={(title) => handleDeleted('Card', title)} />
 
       <p role="status" className="sr-only">
         {announcement}
