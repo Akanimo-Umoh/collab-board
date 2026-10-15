@@ -53,7 +53,7 @@ export const ColumnHeader = memo(function ColumnHeader({
         />
       ) : (
         <>
-          <h2 className="min-w-0 flex-1 text-sm font-semibold break-words text-ink">
+          <h2 className="min-w-0 flex-1 text-sm font-semibold wrap-break-word text-ink">
             {column.title}
           </h2>
           <div className="flex shrink-0 items-center">

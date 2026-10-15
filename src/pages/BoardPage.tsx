@@ -54,12 +54,12 @@ export default function BoardPage() {
           <h1
             ref={headingRef}
             tabIndex={-1}
-            className="text-2xl font-semibold tracking-tight break-words text-ink focus:outline-none"
+            className="text-2xl font-semibold tracking-tight wrap-break-word text-ink focus:outline-none"
           >
             {board.title}
           </h1>
           {board.description && (
-            <p className="mt-1 text-sm break-words text-ink-muted">
+            <p className="mt-1 text-sm wrap-break-word text-ink-muted">
               {board.description}
             </p>
           )}
