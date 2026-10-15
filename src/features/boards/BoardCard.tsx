@@ -24,7 +24,7 @@ export const BoardCard = memo(function BoardCard({ id }: BoardCardProps) {
             to={`/boards/${board.id}`}
             className="rounded-sm after:absolute after:inset-0 after:rounded-card"
           >
-            <span className="line-clamp-2 break-words">{board.title}</span>
+            <span className="line-clamp-2 wrap-break-word">{board.title}</span>
           </Link>
         </h2>
 
@@ -38,7 +38,7 @@ export const BoardCard = memo(function BoardCard({ id }: BoardCardProps) {
       </div>
 
       {board.description ? (
-        <p className="line-clamp-2 text-sm break-words text-ink-muted">
+        <p className="line-clamp-2 text-sm wrap-break-word text-ink-muted">
           {board.description}
         </p>
       ) : (
