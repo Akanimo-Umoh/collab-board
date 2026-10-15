@@ -28,3 +28,4 @@ export const Column = memo(function Column({ id }: ColumnProps) {
     </li>
   )
 })
+ 
