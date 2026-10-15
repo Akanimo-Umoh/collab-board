@@ -68,11 +68,14 @@ export default function BoardPage() {
 
       {/* Full-width scroller whose first column lines up with the title above */}
       <div className="flex items-start gap-4 overflow-x-auto board-gutter pb-6">
-        <ul className="flex items-start gap-4">
-          {board.columnIds.map((id) => (
-            <Column key={id} id={id} />
-          ))}
-        </ul>
+        {/* Skipped when empty: an empty list would still claim a flex gap and a screen reader stop */}
+        {board.columnIds.length > 0 && (
+          <ul className="flex items-start gap-4">
+            {board.columnIds.map((id) => (
+              <Column key={id} id={id} />
+            ))}
+          </ul>
+        )}
 
         <div className="w-72 shrink-0">
           <AddColumnForm
