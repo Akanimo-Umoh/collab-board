@@ -17,7 +17,7 @@ export function DeleteBoardDialog({ onDeleted }: DeleteBoardDialogProps) {
 
   if (!pendingDelete || pendingDelete.type !== 'board' || !board) return null
 
-  function handleConfirm() {
+  const handleConfirm = () => {
     // `board` is non-null here: we returned above otherwise.
     onDeleted(board.title)
     deleteBoard(board.id)
