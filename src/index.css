@@ -40,7 +40,7 @@
 
 @utility board-gutter {
   padding-inline: max(1.5rem, calc((100% - 72rem) / 2 + 1.5rem));
-}
+} 
 
 @layer base {
   html {
