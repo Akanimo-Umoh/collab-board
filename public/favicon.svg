@@ -1,13 +1,5 @@
-<svg
-    viewBox="0 0 28 24"
-    width="28"
-    height="24"
-    aria-hidden="true"
-    focusable="false"
-    className="shrink-0"
->
-    <circle cx="9" cy="12" r="8" fill="var(--color-brand-500)" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 24">
+    <circle cx="9" cy="12" r="8" fill="#4f46e5" />
     <circle cx="19" cy="12" r="8" fill="#818cf8" />
-    {/* The overlap, drawn as a lens so it reads as a deliberate third shape */}
-    <path d="M14 5.755A8 8 0 0 1 14 18.245A8 8 0 0 1 14 5.755Z" fill="var(--color-brand-600)" />
+    <path d="M14 5.755A8 8 0 0 1 14 18.245A8 8 0 0 1 14 5.755Z" fill="#4338ca" />
 </svg>
