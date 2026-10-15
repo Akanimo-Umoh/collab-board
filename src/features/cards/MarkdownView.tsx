@@ -24,6 +24,7 @@ export const MarkdownView = memo(function MarkdownView({
         'prose prose-sm max-w-none wrap-break-word',
         '[--tw-prose-body:var(--color-ink)] [--tw-prose-headings:var(--color-ink)]',
         '[--tw-prose-bold:var(--color-ink)] [--tw-prose-links:var(--color-brand-600)]',
+        '[--tw-prose-bullets:var(--color-ink-muted)] [--tw-prose-counters:var(--color-ink-muted)]',
         'prose-code:rounded prose-code:bg-surface-muted prose-code:px-1 prose-code:py-0.5',
         'prose-code:font-medium prose-code:before:content-none prose-code:after:content-none',
       ].join(' ')}
