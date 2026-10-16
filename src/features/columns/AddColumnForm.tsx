@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { PlusIcon } from '@/components/ui/icons'
 import { TextField } from '@/components/ui/TextField'
@@ -47,6 +41,26 @@ export function AddColumnForm({
       rootRef.current?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [open, columnCount])
 
+  // Escape closes the form from any field or button inside it. The listener is attached
+  // to the wrapper only while the form is open, so no key handler sits on the <form> itself.
+  useEffect(() => {
+    if (!open) return
+    const root = rootRef.current
+    if (!root) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      restoreFocus.current = true
+      setTitle('')
+      setError('')
+      setOpen(false)
+    }
+
+    root.addEventListener('keydown', handleKeyDown)
+    return () => root.removeEventListener('keydown', handleKeyDown)
+  }, [open])
+
   function close() {
     restoreFocus.current = true
     setTitle('')
@@ -70,19 +84,11 @@ export function AddColumnForm({
     setError('')
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      close()
-    }
-  }
-
   return (
     <div ref={rootRef}>
       {open ? (
         <form
           onSubmit={handleSubmit}
-          onKeyDown={handleKeyDown}
           noValidate
           className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3 shadow-card"
         >
@@ -123,4 +129,3 @@ export function AddColumnForm({
     </div>
   )
 }
- 
