@@ -2,14 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/cn'
 
-/**
- * Drop your image in src/assets, import it, and assign it here:
- *
- *   import squirrel from '@/assets/not-found.webp';
- *   const NOT_FOUND_IMAGE: string | null = squirrel;
- *
- * While this is null, the page shows the built-in acorn illustration instead.
- */
+/** Image is null because I've not found the perfect picture for that, the page shows the built-in acorn illustration instead.*/
 const NOT_FOUND_IMAGE: string | null = null
 const NOT_FOUND_IMAGE_ALT = 'A squirrel chasing an acorn across the ice'
 
@@ -68,7 +61,7 @@ export default function NotFoundPage({
   }, [heading])
 
   return (
-    <div className="relative flex min-h-[60dvh] items-center justify-center overflow-hidden px-6 py-16">
+    <div className="relative flex min-h-[calc(100dvh-57px)] items-center justify-center overflow-hidden px-6 py-16">
       {/* Decorative ice glow */}
       <div
         aria-hidden="true"
