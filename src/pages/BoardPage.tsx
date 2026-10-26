@@ -9,6 +9,10 @@ import { useUIStore } from '@/store/ui/uiStore'
 import NotFoundPage from './NotFoundPage'
 import { CardModalHost } from '@/features/cards/CardModalHost'
 import { DeleteCardDialog } from '@/features/cards/DeleteCardDialog'
+import { cancelPointerDrag } from '@/features/dnd/pointerDrag'
+import { cancelKeyboardDrag } from '@/features/dnd/keyboardDrag'
+import { DragPreview } from '@/features/dnd/DragPreview'
+import { DragAnnouncer } from '@/features/dnd/DragAnnouncer'
 
 export default function BoardPage() {
   const { boardId = '' } = useParams()
@@ -16,13 +20,17 @@ export default function BoardPage() {
   const [announcement, setAnnouncement] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // Leaving the page must not leave a half-open edit, dialog, or delete prompt behind.
+  // Leaving the page must not leave a half-open edit, dialog, or delete prompt or drag behind.
   useEffect(() => {
     return () => {
       const ui = useUIStore.getState()
       ui.stopEditingColumn()
       ui.closeCardModal()
       ui.cancelDelete()
+      cancelPointerDrag()
+      if (ui.drag?.mode === 'keyboard') {
+        cancelKeyboardDrag(ui.drag.cardId, false)
+      }
     }
   }, [])
 
@@ -42,7 +50,7 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="py-8">
+    <div className="flex min-h-[calc(100dvh-56px)] flex-col py-8">
       {/* Same content column as the header and dashboard */}
       <div className="mx-auto w-full max-w-6xl px-6">
         <Link
@@ -69,8 +77,12 @@ export default function BoardPage() {
         </div>
       </div>
 
-      {/* Full-width scroller whose first column lines up with the title above */}
-      <div className="flex items-start gap-4 overflow-x-auto board-gutter pb-6">
+      {/* Full-width scroller whose first column lines up with the title above.
+      data-board-scroller lets a drag auto-scroll it horizontally. */}
+      <div
+        data-board-scroller
+        className="flex flex-1 items-start gap-4 overflow-x-auto board-gutter pb-6"
+      >
         {/* Skipped when empty: an empty list would still claim a flex gap and a screen reader stop */}
         {board.columnIds.length > 0 && (
           <ul className="flex items-start gap-4">
@@ -94,6 +106,9 @@ export default function BoardPage() {
         onDeleted={(title) => handleDeleted('Column', title)}
       />
       <DeleteCardDialog onDeleted={(title) => handleDeleted('Card', title)} />
+
+      <DragPreview />
+      <DragAnnouncer />
 
       <p role="status" className="sr-only">
         {announcement}
