@@ -40,7 +40,7 @@
 
 @utility board-gutter {
   padding-inline: max(1.5rem, calc((100% - 72rem) / 2 + 1.5rem));
-} 
+}
 
 @layer base {
   html {
@@ -55,4 +55,48 @@
     outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
   }
+}
+
+/* TODO: come back and use this when I am through with everything */
+.test-bg {
+  background-color: hsla(359, 100%, 50%, 1);
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 1746 1746' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"),
+    radial-gradient(
+      circle at 0% 99%,
+      hsla(11, 100%, 50%, 1) 0%,
+      transparent 67%
+    ),
+    radial-gradient(
+      circle at 46% 94%,
+      hsla(177, 100%, 50%, 1) 0%,
+      transparent 81%
+    ),
+    radial-gradient(
+      circle at 89% 8%,
+      hsla(304, 100%, 9%, 1) 0%,
+      transparent 150%
+    ),
+    radial-gradient(
+      circle at 89% 8%,
+      hsla(206, 100%, 9%, 1) 0%,
+      transparent 150%
+    ),
+    radial-gradient(
+      circle at 93% 95%,
+      hsla(236, 100%, 23%, 1) 0%,
+      transparent 66%
+    ),
+    radial-gradient(
+      circle at 89% 8%,
+      hsla(0, 100%, 99%, 1) 0%,
+      transparent 150%
+    ),
+    radial-gradient(
+      circle at 89% 8%,
+      hsla(55, 94%, 54%, 1) 0%,
+      transparent 150%
+    );
+  background-blend-mode:
+    overlay, normal, normal, normal, normal, normal, normal, normal;
 }
