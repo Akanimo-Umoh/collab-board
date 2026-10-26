@@ -10,6 +10,7 @@ import type {
   Column,
   ID,
 } from '@/types/domain'
+import { moveCardInState } from '@/lib/ordering'
 
 interface DomainState {
   boardOrder: ID[]
@@ -29,6 +30,9 @@ interface DomainActions {
   addCard: (columnId: ID, input: CardInput) => ID | null
   updateCard: (id: ID, patch: Partial<CardInput>) => void
   deleteCard: (id: ID) => void
+
+  /** `toIndex` is the final index among the destination's other cards. False if nothing changed. */
+  moveCard: (cardId: ID, toColumnId: ID, toIndex: number) => boolean
 }
 
 export type DomainStore = DomainState & DomainActions
@@ -191,7 +195,25 @@ export const useDomainStore = create<DomainStore>()(
             },
           }
         }),
+
+      moveCard: (cardId, toColumnId, toIndex) => {
+        let moved = false
+        set((s) => {
+          const next = moveCardInState(
+            s,
+            cardId,
+            toColumnId,
+            toIndex,
+            new Date().toISOString(),
+          )
+          if (!next) return s // same reference: no subscriber is notified
+          moved = true
+          return next
+        })
+        return moved
+      },
     }),
+
     {
       name: 'collabboard:domain',
       partialize: ({ boardOrder, boards, columns, cards }) => ({
