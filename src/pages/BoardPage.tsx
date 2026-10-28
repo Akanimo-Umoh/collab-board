@@ -13,6 +13,7 @@ import { cancelPointerDrag } from '@/features/dnd/pointerDrag'
 import { cancelKeyboardDrag } from '@/features/dnd/keyboardDrag'
 import { DragPreview } from '@/features/dnd/DragPreview'
 import { DragAnnouncer } from '@/features/dnd/DragAnnouncer'
+import { ConnectionStatus } from '@/features/realtime/ConnectionStatus'
 
 export default function BoardPage() {
   const { boardId = '' } = useParams()
@@ -109,6 +110,7 @@ export default function BoardPage() {
 
       <DragPreview />
       <DragAnnouncer />
+      <ConnectionStatus />
 
       <p role="status" className="sr-only">
         {announcement}
