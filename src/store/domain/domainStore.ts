@@ -117,7 +117,12 @@ export const useDomainStore = create<DomainStore>()(
         addColumn: (boardId, title) => {
           if (!get().boards[boardId]) return null
           const id = createId()
-          const column: Column = { id, boardId, title: title.trim(), cardIds: [] }
+          const column: Column = {
+            id,
+            boardId,
+            title: title.trim(),
+            cardIds: [],
+          }
           dispatch(createOperation({ type: 'column.add', column }))
           return id
         },
@@ -132,7 +137,9 @@ export const useDomainStore = create<DomainStore>()(
           ),
 
         deleteColumn: (id) =>
-          void dispatch(createOperation({ type: 'column.delete', columnId: id })),
+          void dispatch(
+            createOperation({ type: 'column.delete', columnId: id }),
+          ),
 
         /* ---------- cards ---------- */
         addCard: (columnId, input) => {
@@ -160,7 +167,11 @@ export const useDomainStore = create<DomainStore>()(
           const changes = diffCardPatch(card, patch)
           if (!changes) return
           dispatch(
-            createOperation({ type: 'card.update', cardId: id, patch: changes }),
+            createOperation({
+              type: 'card.update',
+              cardId: id,
+              patch: changes,
+            }),
           )
         },
 
