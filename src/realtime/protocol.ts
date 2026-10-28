@@ -26,7 +26,9 @@ function isSnapshot(value: unknown): value is DomainSnapshot {
     Array.isArray(value.boardOrder) &&
     isRecord(value.boards) &&
     isRecord(value.columns) &&
-    isRecord(value.cards)
+    isRecord(value.cards) &&
+    isRecord(value.comments) &&
+    isRecord(value.commentChildren)
   )
 }
 
