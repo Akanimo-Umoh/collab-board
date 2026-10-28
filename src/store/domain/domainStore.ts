@@ -20,6 +20,11 @@ import {
 
 type DomainState = DomainSnapshot
 
+interface MoveOptions {
+  /** Apply on this device only: never sent to other sessions. Used for keyboard drag previews. */
+  local?: boolean
+}
+
 interface DomainActions {
   createBoard: (input: BoardInput) => ID
   deleteBoard: (id: ID) => void
@@ -33,7 +38,12 @@ interface DomainActions {
   deleteCard: (id: ID) => void
 
   /** `toIndex` is the final index among the destination's other cards. False if nothing changed. */
-  moveCard: (cardId: ID, toColumnId: ID, toIndex: number) => boolean
+  moveCard: (
+    cardId: ID,
+    toColumnId: ID,
+    toIndex: number,
+    options?: MoveOptions,
+  ) => boolean
 }
 
 export type DomainStore = DomainState & DomainActions
@@ -45,7 +55,7 @@ const initialState: DomainState = {
   cards: {},
 }
 
-/* Extension point for the sync engine (Step 2b): hears every operation the local user performs. */
+/* Hook for the sync engine: hears every operation the local user performs. */
 type LocalOperationListener = (op: Operation) => void
 const localOperationListeners = new Set<LocalOperationListener>()
 
@@ -60,7 +70,7 @@ export const useDomainStore = create<DomainStore>()(
   persist(
     (set, get) => {
       /** Applies an operation optimistically. Returns false when it changed nothing. */
-      const dispatch = (op: Operation): boolean => {
+      const dispatch = (op: Operation, { notify = true } = {}): boolean => {
         let changed = false
         set((s) => {
           const next = applyOperation(s, op)
@@ -68,7 +78,9 @@ export const useDomainStore = create<DomainStore>()(
           changed = true
           return next
         })
-        if (changed) localOperationListeners.forEach((listener) => listener(op))
+        if (changed && notify) {
+          localOperationListeners.forEach((listener) => listener(op))
+        }
         return changed
       }
 
@@ -157,7 +169,7 @@ export const useDomainStore = create<DomainStore>()(
         deleteCard: (id) =>
           void dispatch(createOperation({ type: 'card.delete', cardId: id })),
 
-        moveCard: (cardId, toColumnId, toIndex) => {
+        moveCard: (cardId, toColumnId, toIndex, options) => {
           const { cards, columns } = get()
           const to = columns[toColumnId]
           if (!cards[cardId] || !to) return false
@@ -168,11 +180,11 @@ export const useDomainStore = create<DomainStore>()(
               toColumnId,
               afterCardId: indexToAnchor(to.cardIds, cardId, toIndex),
             }),
+            { notify: !options?.local },
           )
         },
       }
     },
-
     {
       name: 'collabboard:domain',
       partialize: ({ boardOrder, boards, columns, cards }) => ({
