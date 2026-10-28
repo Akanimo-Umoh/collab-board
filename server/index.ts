@@ -17,6 +17,8 @@ let state: DomainSnapshot = {
   boards: {},
   columns: {},
   cards: {},
+  comments: {},
+  commentChildren: {},
 }
 let rev = 0
 
