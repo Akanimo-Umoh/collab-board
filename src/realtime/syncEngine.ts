@@ -2,17 +2,11 @@ import { onLocalOperation, useDomainStore } from '@/store/domain/domainStore'
 import { useUIStore } from '@/store/ui/uiStore'
 import {
   applyOperation,
+  pickSnapshot,
   type DomainSnapshot,
   type Operation,
 } from './operations'
 import type { Transport } from './transport'
-
-const toSnapshot = (s: DomainSnapshot): DomainSnapshot => ({
-  boardOrder: s.boardOrder,
-  boards: s.boards,
-  columns: s.columns,
-  cards: s.cards,
-})
 
 /**
  * Client-side prediction with server reconciliation.
@@ -58,7 +52,7 @@ export function startSync(transport: Transport): () => void {
       // The seed only matters if the server is empty (first client in, or it restarted).
       transport.send({
         type: 'hello',
-        seed: confirmed ?? toSnapshot(useDomainStore.getState()),
+        seed: confirmed ?? pickSnapshot(useDomainStore.getState()),
       })
     } else {
       setConnection(status === 'connecting' ? 'connecting' : 'offline')
