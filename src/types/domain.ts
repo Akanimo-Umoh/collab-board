@@ -26,5 +26,19 @@ export interface Card {
   updatedAt: string
 }
 
+export interface CardComment {
+  id: ID
+  cardId: ID
+  /** null for a top-level comment; otherwise the comment being replied to. */
+  parentId: ID | null
+  authorId: string
+  authorName: string
+  body: string
+  createdAt: string
+  updatedAt: string
+  /** Soft delete: replies stay attached to a tombstone instead of being orphaned. */
+  deleted: boolean
+}
+
 export type BoardInput = Pick<Board, 'title' | 'description'>
 export type CardInput = Pick<Card, 'title' | 'description' | 'tags' | 'dueDate'>
