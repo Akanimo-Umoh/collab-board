@@ -1,13 +1,27 @@
+import { MAX_COMMENT_LENGTH } from '@/lib/comments'
 import { createId } from '@/lib/id'
 import { moveCardInState } from '@/lib/ordering'
 import { withoutKey } from '@/lib/records'
-import type { Board, Card, CardInput, Column, ID } from '@/types/domain'
+import type {
+  Board,
+  Card,
+  CardComment,
+  CardInput,
+  Column,
+  ID,
+} from '@/types/domain'
 
 export interface DomainSnapshot {
   boardOrder: ID[]
   boards: Record<ID, Board>
   columns: Record<ID, Column>
   cards: Record<ID, Card>
+  /** Every comment by id. */
+  comments: Record<ID, CardComment>
+  /**
+   * Ordered child ids. A card's top-level comments live under the card's id, a comment's replies under the comment's id. Ids are unique, so the two kinds of key never collide.
+   */
+  commentChildren: Record<ID, ID[]>
 }
 
 export type CardPatch = Partial<CardInput>
@@ -31,6 +45,10 @@ export type Operation = OperationMeta &
     /** afterCardId is the card that should sit directly above; null means top of the column. */
     | { type: 'card.move'; cardId: ID; toColumnId: ID; afterCardId: ID | null }
     | { type: 'card.delete'; cardId: ID }
+    | { type: 'comment.add'; comment: CardComment }
+    /** authorId is who is asking: only a comment's author can change it. */
+    | { type: 'comment.edit'; commentId: ID; body: string; authorId: string }
+    | { type: 'comment.delete'; commentId: ID; authorId: string }
   )
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
@@ -46,6 +64,19 @@ export function createOperation(input: OperationInput): Operation {
     at: new Date().toISOString(),
   } as Operation
 }
+
+export const pickSnapshot = (s: DomainSnapshot): DomainSnapshot => ({
+  boardOrder: s.boardOrder,
+  boards: s.boards,
+  columns: s.columns,
+  cards: s.cards,
+  comments: s.comments,
+  commentChildren: s.commentChildren,
+})
+
+/** Key under which a comment's siblings are listed. */
+export const threadKey = (cardId: ID, parentId: ID | null): ID =>
+  parentId ?? cardId
 
 /* ---------- ordering anchors ---------- */
 
@@ -105,6 +136,41 @@ export function diffCardPatch(card: Card, patch: CardPatch): CardPatch | null {
   return changed ? changes : null
 }
 
+/* ---------- comment cascades ---------- */
+
+/**
+ * Removes every comment that belongs to the given cards, walking each thread with a stack (no recursion, so a deep thread cannot overflow the call stack).
+ * Returns the SAME maps when there was nothing to remove.
+ */
+function withoutCardThreads(
+  state: DomainSnapshot,
+  cardIds: readonly ID[],
+): Pick<DomainSnapshot, 'comments' | 'commentChildren'> {
+  let comments = state.comments
+  let commentChildren = state.commentChildren
+  let copied = false
+
+  for (const cardId of cardIds) {
+    const stack: ID[] = [cardId]
+    for (let key = stack.pop(); key !== undefined; key = stack.pop()) {
+      const children = commentChildren[key]
+      if (!children) continue
+      if (!copied) {
+        comments = { ...comments }
+        commentChildren = { ...commentChildren }
+        copied = true
+      }
+      for (const childId of children) {
+        delete comments[childId]
+        stack.push(childId)
+      }
+      delete commentChildren[key]
+    }
+  }
+
+  return { comments, commentChildren }
+}
+
 /* ---------- the reducer ---------- */
 
 /**
@@ -131,10 +197,12 @@ export function applyOperation(
 
       const columns = { ...state.columns }
       const cards = { ...state.cards }
+      const removedCardIds: ID[] = []
       for (const columnId of board.columnIds) {
-        state.columns[columnId]?.cardIds.forEach(
-          (cardId) => delete cards[cardId],
-        )
+        state.columns[columnId]?.cardIds.forEach((cardId) => {
+          removedCardIds.push(cardId)
+          delete cards[cardId]
+        })
         delete columns[columnId]
       }
       return {
@@ -143,6 +211,7 @@ export function applyOperation(
         boardOrder: state.boardOrder.filter((id) => id !== op.boardId),
         columns,
         cards,
+        ...withoutCardThreads(state, removedCardIds),
       }
     }
 
@@ -195,6 +264,7 @@ export function applyOperation(
               },
             }
           : state.boards,
+        ...withoutCardThreads(state, column.cardIds),
       }
     }
 
@@ -256,6 +326,68 @@ export function applyOperation(
               },
             }
           : state.columns,
+        ...withoutCardThreads(state, [op.cardId]),
+      }
+    }
+
+    case 'comment.add': {
+      const { comment } = op
+      if (state.comments[comment.id]) return state // duplicate
+      if (!state.cards[comment.cardId]) return state // card was deleted
+      if (
+        comment.body.length === 0 ||
+        comment.body.length > MAX_COMMENT_LENGTH
+      ) {
+        return state
+      }
+      if (comment.parentId !== null) {
+        const parent = state.comments[comment.parentId]
+        // A deleted parent is fine (it is a tombstone); a missing one is not.
+        if (!parent || parent.cardId !== comment.cardId) return state
+      }
+
+      const key = threadKey(comment.cardId, comment.parentId)
+      return {
+        ...state,
+        comments: { ...state.comments, [comment.id]: comment },
+        commentChildren: {
+          ...state.commentChildren,
+          [key]: [...(state.commentChildren[key] ?? []), comment.id],
+        },
+      }
+    }
+
+    case 'comment.edit': {
+      const comment = state.comments[op.commentId]
+      if (!comment || comment.deleted) return state // delete wins over edit
+      if (comment.authorId !== op.authorId) return state
+      if (op.body.length === 0 || op.body.length > MAX_COMMENT_LENGTH)
+        return state
+      if (comment.body === op.body) return state
+      return {
+        ...state,
+        comments: {
+          ...state.comments,
+          [comment.id]: { ...comment, body: op.body, updatedAt: op.at },
+        },
+      }
+    }
+
+    case 'comment.delete': {
+      const comment = state.comments[op.commentId]
+      if (!comment || comment.deleted) return state
+      if (comment.authorId !== op.authorId) return state
+      return {
+        ...state,
+        comments: {
+          ...state.comments,
+          [comment.id]: {
+            ...comment,
+            body: '',
+            deleted: true,
+            updatedAt: op.at,
+          },
+        },
       }
     }
   }
