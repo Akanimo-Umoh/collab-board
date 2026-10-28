@@ -192,7 +192,7 @@ export function beginPointerDrag(
     ui.endDrag()
     suppressNextClick()
 
-    if (commit && drag?.over && dropCard(cardId, drag.origin, drag.over)) {
+    if (commit && drag?.over && dropCard(cardId, drag.over)) {
       const title = useDomainStore.getState().cards[cardId]?.title ?? 'card'
       ui.announceDrag(
         `Dropped card "${title}", ${describeCardPosition(cardId)}.`,
