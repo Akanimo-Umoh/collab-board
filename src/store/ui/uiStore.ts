@@ -7,6 +7,9 @@ export type CardModalState =
 
 export type PendingDelete = { type: 'board' | 'column' | 'card'; id: ID } | null
 
+/** 'disabled' means local-only mode (no realtime server configured). */
+export type ConnectionState = 'disabled' | 'offline' | 'connecting' | 'online'
+
 export interface DragPreviewGeometry {
   startX: number
   startY: number
@@ -32,6 +35,7 @@ interface UIStore {
   pendingDelete: PendingDelete
   drag: DragState | null
   dragAnnouncement: string
+  connection: ConnectionState
 
   openCreateCard: (columnId: ID) => void
   openEditCard: (cardId: ID) => void
@@ -47,6 +51,8 @@ interface UIStore {
   setDragOver: (over: CardPosition | null) => void
   endDrag: () => void
   announceDrag: (message: string) => void
+
+  setConnection: (connection: ConnectionState) => void
 }
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -55,6 +61,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   pendingDelete: null,
   drag: null,
   dragAnnouncement: '',
+  connection: 'disabled',
 
   openCreateCard: (columnId) =>
     set({ cardModal: { mode: 'create', columnId } }),
@@ -84,4 +91,6 @@ export const useUIStore = create<UIStore>()((set) => ({
     }),
   endDrag: () => set({ drag: null }),
   announceDrag: (message) => set({ dragAnnouncement: message }),
+
+  setConnection: (connection) => set({ connection }),
 }))
