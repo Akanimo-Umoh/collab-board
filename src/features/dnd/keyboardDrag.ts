@@ -3,7 +3,6 @@ import { getKeyboardTarget, type MoveDirection } from '@/lib/ordering'
 import { useDomainStore } from '@/store/domain/domainStore'
 import { useUIStore } from '@/store/ui/uiStore'
 import type { ID } from '@/types/domain'
-import { syncMove } from './persistMove'
 import { describeCardPosition, getCardPosition } from './positions'
 
 function toDirection(key: string): MoveDirection | null {
@@ -43,6 +42,7 @@ function grab(cardId: ID): void {
   )
 }
 
+/** A local preview only: other sessions must not watch the card hop with every key press. */
 function move(cardId: ID, direction: MoveDirection): void {
   const ui = useUIStore.getState()
   const target = getKeyboardTarget(useDomainStore.getState(), cardId, direction)
@@ -50,7 +50,9 @@ function move(cardId: ID, direction: MoveDirection): void {
     ui.announceDrag(`Can't move ${direction} any further.`)
     return
   }
-  useDomainStore.getState().moveCard(cardId, target.columnId, target.index)
+  useDomainStore
+    .getState()
+    .moveCard(cardId, target.columnId, target.index, { local: true })
   ui.announceDrag(`Moved to ${describeCardPosition(cardId)}.`)
 }
 
@@ -63,18 +65,24 @@ function drop(cardId: ID): void {
 
   const changed =
     drag.origin.columnId !== to.columnId || drag.origin.index !== to.index
+
   if (changed) {
+    // Put the card back (silently), then perform the move once for real, so other sessions receive ONE operation. Both happen in the same event, so React batches them: no flicker.
+    const domain = useDomainStore.getState()
+    domain.moveCard(cardId, drag.origin.columnId, drag.origin.index, {
+      local: true,
+    })
+    domain.moveCard(cardId, to.columnId, to.index)
     ui.announceDrag(
       `Dropped card "${cardTitle(cardId)}", ${describeCardPosition(cardId)}.`,
     )
-    void syncMove(cardId, drag.origin, to)
   } else {
     ui.announceDrag(`Dropped card "${cardTitle(cardId)}". Position unchanged.`)
   }
   focusHandle(cardId)
 }
 
-/** Nothing was persisted while grabbed, so cancelling only restores the store. */
+/** Nothing was sent while grabbed, so cancelling only restores the local preview. */
 export function cancelKeyboardDrag(cardId: ID, restoreFocus = true): void {
   const ui = useUIStore.getState()
   const drag = ui.drag
@@ -82,7 +90,7 @@ export function cancelKeyboardDrag(cardId: ID, restoreFocus = true): void {
 
   useDomainStore
     .getState()
-    .moveCard(cardId, drag.origin.columnId, drag.origin.index)
+    .moveCard(cardId, drag.origin.columnId, drag.origin.index, { local: true })
   ui.endDrag()
   ui.announceDrag(
     `Move cancelled. Card "${cardTitle(cardId)}" is back in ${describeCardPosition(cardId)}.`,
