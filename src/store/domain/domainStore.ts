@@ -1,14 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { MAX_COMMENT_LENGTH } from '@/lib/comments'
 import { createId } from '@/lib/id'
-import type {
-  Board,
-  BoardInput,
-  Card,
-  CardInput,
-  Column,
-  ID,
-} from '@/types/domain'
+import { getIdentity } from '@/lib/identity'
 import {
   applyOperation,
   createOperation,
@@ -17,6 +11,15 @@ import {
   type DomainSnapshot,
   type Operation,
 } from '@/realtime/operations'
+import type {
+  Board,
+  BoardInput,
+  Card,
+  CardComment,
+  CardInput,
+  Column,
+  ID,
+} from '@/types/domain'
 
 type DomainState = DomainSnapshot
 
@@ -36,7 +39,6 @@ interface DomainActions {
   addCard: (columnId: ID, input: CardInput) => ID | null
   updateCard: (id: ID, patch: Partial<CardInput>) => void
   deleteCard: (id: ID) => void
-
   /** `toIndex` is the final index among the destination's other cards. False if nothing changed. */
   moveCard: (
     cardId: ID,
@@ -44,6 +46,11 @@ interface DomainActions {
     toIndex: number,
     options?: MoveOptions,
   ) => boolean
+
+  /** `parentId` null adds a top-level comment. Returns the new id, or null if it was rejected. */
+  addComment: (cardId: ID, parentId: ID | null, body: string) => ID | null
+  editComment: (id: ID, body: string) => void
+  deleteComment: (id: ID) => void
 }
 
 export type DomainStore = DomainState & DomainActions
@@ -53,6 +60,8 @@ const initialState: DomainState = {
   boards: {},
   columns: {},
   cards: {},
+  comments: {},
+  commentChildren: {},
 }
 
 /* Hook for the sync engine: hears every operation the local user performs. */
@@ -108,12 +117,7 @@ export const useDomainStore = create<DomainStore>()(
         addColumn: (boardId, title) => {
           if (!get().boards[boardId]) return null
           const id = createId()
-          const column: Column = {
-            id,
-            boardId,
-            title: title.trim(),
-            cardIds: [],
-          }
+          const column: Column = { id, boardId, title: title.trim(), cardIds: [] }
           dispatch(createOperation({ type: 'column.add', column }))
           return id
         },
@@ -128,9 +132,7 @@ export const useDomainStore = create<DomainStore>()(
           ),
 
         deleteColumn: (id) =>
-          void dispatch(
-            createOperation({ type: 'column.delete', columnId: id }),
-          ),
+          void dispatch(createOperation({ type: 'column.delete', columnId: id })),
 
         /* ---------- cards ---------- */
         addCard: (columnId, input) => {
@@ -158,11 +160,7 @@ export const useDomainStore = create<DomainStore>()(
           const changes = diffCardPatch(card, patch)
           if (!changes) return
           dispatch(
-            createOperation({
-              type: 'card.update',
-              cardId: id,
-              patch: changes,
-            }),
+            createOperation({ type: 'card.update', cardId: id, patch: changes }),
           )
         },
 
@@ -183,16 +181,69 @@ export const useDomainStore = create<DomainStore>()(
             { notify: !options?.local },
           )
         },
+
+        /* ---------- comments ---------- */
+        addComment: (cardId, parentId, body) => {
+          const { cards, comments } = get()
+          if (!cards[cardId]) return null
+          if (parentId !== null) {
+            const parent = comments[parentId]
+            if (!parent || parent.cardId !== cardId) return null
+          }
+          const text = body.trim()
+          if (!text || text.length > MAX_COMMENT_LENGTH) return null
+
+          const author = getIdentity()
+          const now = new Date().toISOString()
+          const id = createId()
+          const comment: CardComment = {
+            id,
+            cardId,
+            parentId,
+            authorId: author.id,
+            authorName: author.name,
+            body: text,
+            createdAt: now,
+            updatedAt: now,
+            deleted: false,
+          }
+          dispatch(createOperation({ type: 'comment.add', comment }))
+          return id
+        },
+
+        editComment: (id, body) => {
+          const text = body.trim()
+          if (!text || text.length > MAX_COMMENT_LENGTH) return
+          dispatch(
+            createOperation({
+              type: 'comment.edit',
+              commentId: id,
+              body: text,
+              authorId: getIdentity().id,
+            }),
+          )
+        },
+
+        deleteComment: (id) =>
+          void dispatch(
+            createOperation({
+              type: 'comment.delete',
+              commentId: id,
+              authorId: getIdentity().id,
+            }),
+          ),
       }
     },
     {
       name: 'collabboard:domain',
-      partialize: ({ boardOrder, boards, columns, cards }) => ({
+      partialize: ({
         boardOrder,
         boards,
         columns,
         cards,
-      }),
+        comments,
+        commentChildren,
+      }) => ({ boardOrder, boards, columns, cards, comments, commentChildren }),
     },
   ),
 )
