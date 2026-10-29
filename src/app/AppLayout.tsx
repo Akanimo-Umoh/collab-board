@@ -1,5 +1,9 @@
 import { Suspense, useEffect, useRef } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { PageErrorFallback } from '@/components/PageErrorFallback'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { cn } from '@/lib/cn'
 import { Logo } from './Logo'
 import { RouteFallback } from './RouteFallback'
 
@@ -7,6 +11,7 @@ export default function AppLayout() {
   const { pathname } = useLocation()
   const mainRef = useRef<HTMLElement>(null)
   const lastPathname = useRef(pathname)
+  const isBoard = pathname.startsWith('/boards/')
 
   // Move focus to the page content after in-app navigation (not on first load).
   useEffect(() => {
@@ -25,14 +30,21 @@ export default function AppLayout() {
         Skip to main content
       </a>
 
-      <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center px-6">
+      {/* h-14 is the height the board layout subtracts (--app-header-h). */}
+      <header className="h-14 shrink-0 border-b border-border bg-surface">
+        <div
+          className={cn(
+            'mx-auto flex h-full w-full items-center justify-between px-6',
+            !isBoard && 'max-w-6xl',
+          )}
+        >
           <Link to="/" className="flex items-center gap-2 rounded-md">
             <Logo />
             <span className="text-base tracking-tight text-ink">
               Collab<span className="font-bold">Board</span>
             </span>
           </Link>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -42,9 +54,14 @@ export default function AppLayout() {
         tabIndex={-1}
         className="flex-1 focus:outline-none"
       >
-        <Suspense fallback={<RouteFallback />}>
-          <Outlet />
-        </Suspense>
+        <ErrorBoundary
+          resetKey={pathname}
+          fallback={(props) => <PageErrorFallback {...props} />}
+        >
+          <Suspense fallback={<RouteFallback />}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   )
