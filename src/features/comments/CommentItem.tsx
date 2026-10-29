@@ -5,6 +5,7 @@ import { useDomainStore } from '@/store/domain/domainStore'
 import { useComment, useReplyIds } from '@/store/hooks'
 import { useAnnouncerStore } from '@/store/ui/announcerStore'
 import { CommentForm } from './CommentForm'
+import { usePagedIds } from './usePagedIds'
 
 type Mode = 'idle' | 'replying' | 'editing' | 'confirmingDelete'
 type Action = 'reply' | 'edit' | 'delete'
@@ -18,9 +19,19 @@ interface CommentItemProps {
 const actionButton =
   'rounded-md px-1.5 py-0.5 text-xs font-medium text-ink-muted hover:bg-surface-muted hover:text-ink'
 
+const REPLY_PAGE_SIZE = 15
+
 function CommentItemView({ id, depth }: CommentItemProps) {
   const comment = useComment(id)
   const replyIds = useReplyIds(id)
+
+  const {
+    visibleIds: visibleReplyIds,
+    hiddenCount: hiddenReplyCount,
+    showEarlier: showEarlierReplies,
+  } = usePagedIds(replyIds, REPLY_PAGE_SIZE)
+  const repliesRef = useRef<HTMLUListElement>(null)
+
   const [mode, setMode] = useState<Mode>('idle')
   const [collapsed, setCollapsed] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -191,14 +202,34 @@ function CommentItemView({ id, depth }: CommentItemProps) {
       </div>
 
       {replyIds.length > 0 && !collapsed && (
-        <ul
-          id={repliesId}
-          className="ml-2 flex flex-col gap-3 border-l border-border pl-4"
-        >
-          {replyIds.map((replyId) => (
-            <CommentItem key={replyId} id={replyId} depth={depth + 1} />
-          ))}
-        </ul>
+        <div className="ml-2 flex flex-col gap-3 border-l border-border pl-4">
+          {hiddenReplyCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                showEarlierReplies()
+                // If that was the last page the button disappears, so keep focus in the thread.
+                if (hiddenReplyCount <= REPLY_PAGE_SIZE) {
+                  requestAnimationFrame(() => repliesRef.current?.focus())
+                }
+              }}
+              className={`${actionButton} self-start`}
+            >
+              Show {Math.min(hiddenReplyCount, REPLY_PAGE_SIZE)} earlier replies
+              ({hiddenReplyCount} hidden)
+            </button>
+          )}
+          <ul
+            id={repliesId}
+            ref={repliesRef}
+            tabIndex={-1}
+            className="flex flex-col gap-3 focus:outline-none"
+          >
+            {visibleReplyIds.map((replyId) => (
+              <CommentItem key={replyId} id={replyId} depth={depth + 1} />
+            ))}
+          </ul>
+        </div>
       )}
     </li>
   )
