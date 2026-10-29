@@ -10,6 +10,7 @@ import {
   indexToAnchor,
   type DomainSnapshot,
   type Operation,
+  type OperationInput,
 } from '@/realtime/operations'
 import type {
   Board,
@@ -46,6 +47,9 @@ interface DomainActions {
     toIndex: number,
     options?: MoveOptions,
   ) => boolean
+
+  /** Applies several operations in order (used by undo/redo). True if any changed something. */
+  applyOperations: (inputs: OperationInput[]) => boolean
 
   /** `parentId` null adds a top-level comment. Returns the new id, or null if it was rejected. */
   addComment: (cardId: ID, parentId: ID | null, body: string) => ID | null
@@ -192,6 +196,14 @@ export const useDomainStore = create<DomainStore>()(
             }),
             { notify: !options?.local },
           )
+        },
+
+        applyOperations: (inputs) => {
+          let changed = false
+          for (const input of inputs) {
+            if (dispatch(createOperation(input))) changed = true
+          }
+          return changed
         },
 
         /* ---------- comments ---------- */
