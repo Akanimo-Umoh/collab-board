@@ -1,5 +1,5 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { getEdgeScrollDelta, getInsertIndex } from '@/lib/dnd'
+import { findInsertIndex, getEdgeScrollDelta } from '@/lib/dnd'
 import type { CardPosition } from '@/lib/ordering'
 import { useDomainStore } from '@/store/domain/domainStore'
 import { useUIStore } from '@/store/ui/uiStore'
@@ -23,13 +23,19 @@ function resolveTarget(x: number, y: number, cardId: ID): CardPosition | null {
   const columnId = column?.dataset.dropColumn
   if (!column || !columnId) return null
 
-  const midpoints: number[] = []
-  column.querySelectorAll<HTMLElement>('[data-card-id]').forEach((el) => {
-    if (el.dataset.cardId === cardId) return
-    const rect = el.getBoundingClientRect()
-    midpoints.push(rect.top + rect.height / 2)
-  })
-  return { columnId, index: getInsertIndex(midpoints, y) }
+  // Cards are ordered top to bottom, so binary search: about 8 layout reads per frame for a 200-card column instead of 200.
+  const cards = Array.from(
+    column.querySelectorAll<HTMLElement>('[data-card-id]'),
+  ).filter((el) => el.dataset.cardId !== cardId)
+  const index = findInsertIndex(
+    cards.length,
+    (i) => {
+      const rect = cards[i].getBoundingClientRect()
+      return rect.top + rect.height / 2
+    },
+    y,
+  )
+  return { columnId, index }
 }
 
 /** Scrolls the board (and page) when the pointer nears an edge. True if it moved. */
