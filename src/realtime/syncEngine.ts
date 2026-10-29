@@ -1,5 +1,7 @@
 import { onLocalOperation, useDomainStore } from '@/store/domain/domainStore'
+import { toast } from '@/store/ui/toastStore'
 import { useUIStore } from '@/store/ui/uiStore'
+import { describeOperation } from './describe'
 import {
   applyOperation,
   pickSnapshot,
@@ -79,15 +81,22 @@ export function startSync(transport: Transport): () => void {
           return
         }
 
-        confirmed = applyOperation(confirmed, message.op)
+        const { op } = message
+        const next = applyOperation(confirmed, op)
+        const isOwn = pending.some((p) => p.opId === op.opId)
+
+        if (!isOwn && next !== confirmed) {
+          // Someone else changed something: tell the user what, and who.
+          const notice = describeOperation(op, confirmed, 'remote')
+          if (notice) toast.info(notice)
+        }
+
+        confirmed = next
         rev = message.rev
 
-        const isOwn = pending.some((p) => p.opId === message.op.opId)
         if (isOwn) {
-          // Our own operation, acknowledged. The screen already shows
-          // confirmed + pending, which now equals the new confirmed state,
-          // so only the bookkeeping changes: no store write, no re-render.
-          pending = pending.filter((p) => p.opId !== message.op.opId)
+          // Our own operation, acknowledged. The screen already shows confirmed + pending, which now equals the new confirmed state, so only the bookkeeping changes: no store write, no re-render.
+          pending = pending.filter((p) => p.opId !== op.opId)
         } else {
           showOptimistic() // someone else's change: replay ours on top
         }
