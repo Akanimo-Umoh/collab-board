@@ -330,12 +330,11 @@ export function applyOperation(
       const { comment } = op
       if (state.comments[comment.id]) return state // duplicate
       if (!state.cards[comment.cardId]) return state // card was deleted
-      if (
-        comment.body.length === 0 ||
-        comment.body.length > MAX_COMMENT_LENGTH
-      ) {
-        return state
-      }
+      // A tombstone (deleted comment) has an empty body by design. Undoing a card deletion must be able to restore those so replies keep their parent.
+      const validBody = comment.deleted
+        ? comment.body === ''
+        : comment.body.length > 0 && comment.body.length <= MAX_COMMENT_LENGTH
+      if (!validBody) return state
       if (comment.parentId !== null) {
         const parent = state.comments[comment.parentId]
         // A deleted parent is fine (it is a tombstone); a missing one is not.
