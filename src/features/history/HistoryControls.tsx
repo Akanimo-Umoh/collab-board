@@ -1,25 +1,5 @@
+import { UndoIcon } from '@/components/ui/icons'
 import { useHistoryStore } from '@/history/historyStore'
-
-function ArrowIcon({ flip = false }: { flip?: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={flip ? '-scale-x-100' : undefined}
-    >
-      <path d="M6 4 3 7l3 3" />
-      <path d="M3 7h6.5a3.5 3.5 0 0 1 0 7H7" />
-    </svg>
-  )
-}
 
 interface HistoryButtonProps {
   name: 'Undo' | 'Redo'
@@ -54,7 +34,11 @@ function HistoryButton({
         empty ? 'cursor-not-allowed opacity-40' : 'hover:bg-surface-muted'
       }`}
     >
-      <ArrowIcon flip={name === 'Redo'} />
+      <UndoIcon
+        width={16}
+        height={16}
+        className={name === 'Redo' ? '-scale-x-100' : undefined}
+      />
       {name}
     </button>
   )

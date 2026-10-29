@@ -37,6 +37,7 @@ interface UIStore {
   drag: DragState | null
   dragAnnouncement: string
   connection: ConnectionState
+  initialSync: 'pending' | 'done'
 
   openCreateCard: (columnId: ID) => void
   openEditCard: (cardId: ID) => void
@@ -54,6 +55,7 @@ interface UIStore {
   announceDrag: (message: string) => void
 
   setConnection: (connection: ConnectionState) => void
+  finishInitialSync: () => void
 }
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -63,6 +65,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   drag: null,
   dragAnnouncement: '',
   connection: 'disabled',
+  initialSync: 'pending',
 
   openCreateCard: (columnId) =>
     set({ cardModal: { mode: 'create', columnId } }),
@@ -94,4 +97,5 @@ export const useUIStore = create<UIStore>()((set) => ({
   announceDrag: (message) => set({ dragAnnouncement: message }),
 
   setConnection: (connection) => set({ connection }),
+  finishInitialSync: () => set({ initialSync: 'done' }),
 }))
