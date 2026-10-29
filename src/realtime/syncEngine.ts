@@ -47,6 +47,13 @@ export function startSync(transport: Transport): () => void {
   const setConnection = useUIStore.getState().setConnection
   setConnection('offline')
 
+  // Give the server a few seconds (a sleeping free-tier host can be slow),
+  // then stop showing loading skeletons and show whatever is local.
+  const initialSyncTimer = setTimeout(
+    () => useUIStore.getState().finishInitialSync(),
+    8000,
+  )
+
   /** Rebuild what the user sees. Entities untouched by `pending` keep their references. */
   function showOptimistic(): void {
     if (!confirmed) return
@@ -91,6 +98,7 @@ export function startSync(transport: Transport): () => void {
         showOptimistic()
         sendPending() // anything the server never acknowledged; it ignores duplicates
         setConnection('online')
+        useUIStore.getState().finishInitialSync()
         return
       }
 
@@ -134,6 +142,7 @@ export function startSync(transport: Transport): () => void {
   })
 
   return () => {
+    clearTimeout(initialSyncTimer)
     offLocal()
     offStatus()
     offMessage()
