@@ -56,8 +56,6 @@ const httpServer = createServer((req, res) => {
 const wss = new WebSocketServer({
   server: httpServer,
   maxPayload: MAX_PAYLOAD_BYTES,
-  verifyClient: ({ origin }) =>
-    ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin),
 })
 
 const alive = new WeakSet<WebSocket>()
@@ -70,10 +68,13 @@ function broadcast(message: ServerMessage): void {
   for (const client of wss.clients) send(client, message)
 }
 
-wss.on('connection', (socket) => {
-  alive.add(socket)
-  socket.on('pong', () => alive.add(socket))
-  console.log(`client connected (${wss.clients.size} online)`)
+wss.on('connection', (socket, request) => {
+  // Browsers always send Origin; refuse pages we don't know.
+  const origin = request.headers.origin ?? ''
+  if (ALLOWED_ORIGINS.length > 0 && !ALLOWED_ORIGINS.includes(origin)) {
+    socket.close(1008, 'Origin not allowed')
+    return
+  }
 
   socket.on('message', (data) => {
     const message = parseClientMessage(data.toString())
