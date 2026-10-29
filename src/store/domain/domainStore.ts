@@ -21,6 +21,7 @@ import type {
   Column,
   ID,
 } from '@/types/domain'
+import { createDebouncedJSONStorage } from '@/lib/debouncedStorage'
 
 type DomainState = DomainSnapshot
 
@@ -199,11 +200,26 @@ export const useDomainStore = create<DomainStore>()(
         },
 
         applyOperations: (inputs) => {
-          let changed = false
+          // Apply everything in memory, then write to the store ONCE: one
+          // render instead of one per operation. Listeners (sync, history)
+          // still hear every operation, with the state it replaced.
+          const applied: { op: Operation; before: DomainSnapshot }[] = []
+          let current: DomainSnapshot = get()
+
           for (const input of inputs) {
-            if (dispatch(createOperation(input))) changed = true
+            const op = createOperation(input)
+            const next = applyOperation(current, op)
+            if (next === current) continue
+            applied.push({ op, before: current })
+            current = next
           }
-          return changed
+
+          if (applied.length === 0) return false
+          set(current)
+          for (const { op, before } of applied) {
+            localOperationListeners.forEach((listener) => listener(op, before))
+          }
+          return true
         },
 
         /* ---------- comments ---------- */
@@ -260,6 +276,7 @@ export const useDomainStore = create<DomainStore>()(
     },
     {
       name: 'collabboard:domain',
+      storage: createDebouncedJSONStorage<DomainSnapshot>(),
       partialize: ({
         boardOrder,
         boards,
