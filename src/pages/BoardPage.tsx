@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeftIcon } from '@/components/ui/icons'
 import { AddColumnForm } from '@/features/columns/AddColumnForm'
@@ -11,11 +11,17 @@ import { cancelPointerDrag } from '@/features/dnd/pointerDrag'
 import { HistoryControls } from '@/features/history/HistoryControls'
 import { ConnectionStatus } from '@/features/realtime/ConnectionStatus'
 import { useHistoryShortcuts } from '@/history/useHistoryShortcuts'
+import { PerfProfiler } from '@/perf/PerfProfiler'
+import { isPerfLabEnabled } from '@/perf/perfStats'
 import { useBoard } from '@/store/hooks'
 import { useUIStore } from '@/store/ui/uiStore'
 import NotFoundPage from './NotFoundPage'
 import { CardModalHost } from '@/features/cards/CardModalHost'
 import { DeleteCardDialog } from '@/features/cards/DeleteCardDialog'
+
+// The lab is opt-in (?perf) and loaded on demand, so it costs normal users nothing.
+const PERF_LAB_ENABLED = isPerfLabEnabled()
+const PerfLab = lazy(() => import('@/perf/PerfLab'))
 
 export default function BoardPage() {
   const { boardId = '' } = useParams()
@@ -87,27 +93,29 @@ export default function BoardPage() {
 
       {/* Full-width scroller whose first column lines up with the title above.
       data-board-scroller lets a drag auto-scroll it horizontally. */}
-      <div
-        data-board-scroller
-        className="flex items-start gap-4 overflow-x-auto board-gutter pb-6"
-      >
-        {/* Skipped when empty: an empty list would still claim a flex gap and a screen reader stop */}
-        {board.columnIds.length > 0 && (
-          <ul className="flex items-start gap-4">
-            {board.columnIds.map((id) => (
-              <Column key={id} id={id} />
-            ))}
-          </ul>
-        )}
+      <PerfProfiler id="board-columns">
+        <div
+          data-board-scroller
+          className="flex items-start gap-4 overflow-x-auto board-gutter pb-6"
+        >
+          {/* Skipped when empty: an empty list would still claim a flex gap and a screen reader stop */}
+          {board.columnIds.length > 0 && (
+            <ul className="flex items-start gap-4">
+              {board.columnIds.map((id) => (
+                <Column key={id} id={id} />
+              ))}
+            </ul>
+          )}
 
-        <div className="w-72 shrink-0">
-          <AddColumnForm
-            boardId={board.id}
-            columnCount={board.columnIds.length}
-            onAdded={(title) => setAnnouncement(`Column ${title} added.`)}
-          />
+          <div className="w-72 shrink-0">
+            <AddColumnForm
+              boardId={board.id}
+              columnCount={board.columnIds.length}
+              onAdded={(title) => setAnnouncement(`Column ${title} added.`)}
+            />
+          </div>
         </div>
-      </div>
+      </PerfProfiler>
 
       <CardModalHost onAnnounce={setAnnouncement} />
       <DeleteColumnDialog
@@ -118,6 +126,12 @@ export default function BoardPage() {
       <DragPreview />
       <DragAnnouncer />
       <ConnectionStatus />
+
+      {PERF_LAB_ENABLED && (
+        <Suspense fallback={null}>
+          <PerfLab boardId={board.id} />
+        </Suspense>
+      )}
 
       <p role="status" className="sr-only">
         {announcement}
