@@ -13,13 +13,19 @@ const MAX_HISTORY = 100
 let replaying = false
 export const isReplayingHistory = () => replaying
 
-function run(inputs: OperationInput[]): boolean {
+/** Runs `fn` with history recording and "created / deleted" toasts switched off. */
+export function withoutHistory<T>(fn: () => T): T {
+  const previous = replaying
   replaying = true
   try {
-    return useDomainStore.getState().applyOperations(inputs)
+    return fn()
   } finally {
-    replaying = false
+    replaying = previous
   }
+}
+
+function run(inputs: OperationInput[]): boolean {
+  return withoutHistory(() => useDomainStore.getState().applyOperations(inputs))
 }
 
 interface HistoryStore {
