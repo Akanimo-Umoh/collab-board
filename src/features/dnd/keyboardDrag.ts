@@ -32,6 +32,15 @@ function focusHandle(cardId: ID): void {
   })
 }
 
+/** Keeps the moved card visible inside its scrolling column (and the board). */
+function revealCard(cardId: ID): void {
+  requestAnimationFrame(() => {
+    document
+      .querySelector<HTMLElement>(`[data-card-id="${cardId}"]`)
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  })
+}
+
 function grab(cardId: ID): void {
   const origin = getCardPosition(cardId)
   if (!origin) return
@@ -54,6 +63,7 @@ function move(cardId: ID, direction: MoveDirection): void {
     .getState()
     .moveCard(cardId, target.columnId, target.index, { local: true })
   ui.announceDrag(`Moved to ${describeCardPosition(cardId)}.`)
+  revealCard(cardId)
 }
 
 function drop(cardId: ID): void {

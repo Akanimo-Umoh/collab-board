@@ -38,7 +38,7 @@ function resolveTarget(x: number, y: number, cardId: ID): CardPosition | null {
   return { columnId, index }
 }
 
-/** Scrolls the board (and page) when the pointer nears an edge. True if it moved. */
+/** Scrolls the board sideways and the column under the pointer up or down. True if anything moved. */
 function autoScroll(
   x: number,
   y: number,
@@ -56,11 +56,18 @@ function autoScroll(
     }
   }
 
-  const dy = getEdgeScrollDelta(y, 0, window.innerHeight)
-  if (dy !== 0) {
-    const before = window.scrollY
-    window.scrollBy(0, dy)
-    scrolled = scrolled || window.scrollY !== before
+  const list = document
+    .elementFromPoint(x, y)
+    ?.closest<HTMLElement>('[data-drop-column]')
+    ?.querySelector<HTMLElement>('[data-column-scroll]')
+  if (list) {
+    const bounds = list.getBoundingClientRect()
+    const dy = getEdgeScrollDelta(y, bounds.top, bounds.bottom)
+    if (dy !== 0) {
+      const before = list.scrollTop
+      list.scrollTop += dy
+      scrolled = scrolled || list.scrollTop !== before
+    }
   }
 
   return scrolled
@@ -118,6 +125,7 @@ export function beginPointerDrag(
         offsetX: originX - rect.left,
         offsetY: originY - rect.top,
         width: rect.width,
+        height: rect.height,
       },
     })
     document.body.style.userSelect = 'none'
