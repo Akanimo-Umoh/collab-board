@@ -4,7 +4,7 @@ export type NoticePerspective = 'local' | 'remote'
 
 const MAX_TITLE = 40
 
-function quoted(text: string): string {
+export function quoted(text: string): string {
   const clipped =
     text.length > MAX_TITLE ? `${text.slice(0, MAX_TITLE - 1)}…` : text
   return `“${clipped}”`

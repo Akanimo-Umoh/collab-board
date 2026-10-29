@@ -1,16 +1,16 @@
-import { startLocalNotifications } from './localNotifications'
+import { startHistory } from '@/history/startHistory'
 import { startSync } from './syncEngine'
 import { createWebSocketTransport } from './transport'
 
 /**
- * Starts toasts for local actions, plus real-time sync if VITE_WS_URL is set.
- * Without a server the app stays local-only.
+ * Starts undo history and local-action toasts, plus real-time sync if
+ * VITE_WS_URL is set. Without a server the app stays local-only.
  */
 export function startRealtime(): () => void {
-  const stopNotifications = startLocalNotifications()
+  const stopHistory = startHistory()
 
   const url: unknown = import.meta.env.VITE_WS_URL
-  if (typeof url !== 'string' || url === '') return stopNotifications
+  if (typeof url !== 'string' || url === '') return stopHistory
 
   const transport = createWebSocketTransport(url)
   const stopSync = startSync(transport)
@@ -19,6 +19,6 @@ export function startRealtime(): () => void {
   return () => {
     stopSync()
     transport.stop()
-    stopNotifications()
+    stopHistory()
   }
 }
