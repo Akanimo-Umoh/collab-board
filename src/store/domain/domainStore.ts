@@ -3,9 +3,9 @@ import { persist } from 'zustand/middleware'
 import { MAX_COMMENT_LENGTH } from '@/lib/comments'
 import { createId } from '@/lib/id'
 import { getIdentity } from '@/lib/identity'
+import { createOperation } from '@/realtime/createOperation'
 import {
   applyOperation,
-  createOperation,
   diffCardPatch,
   indexToAnchor,
   type DomainSnapshot,
@@ -65,7 +65,7 @@ const initialState: DomainState = {
 }
 
 /* Hook for the sync engine: hears every operation the local user performs. */
-type LocalOperationListener = (op: Operation) => void
+type LocalOperationListener = (op: Operation, before: DomainSnapshot) => void
 const localOperationListeners = new Set<LocalOperationListener>()
 
 export function onLocalOperation(listener: LocalOperationListener): () => void {
@@ -80,6 +80,7 @@ export const useDomainStore = create<DomainStore>()(
     (set, get) => {
       /** Applies an operation optimistically. Returns false when it changed nothing. */
       const dispatch = (op: Operation, { notify = true } = {}): boolean => {
+        const before = get() // what this operation replaced: titles of deleted items, and later, undo
         let changed = false
         set((s) => {
           const next = applyOperation(s, op)
@@ -88,7 +89,7 @@ export const useDomainStore = create<DomainStore>()(
           return next
         })
         if (changed && notify) {
-          localOperationListeners.forEach((listener) => listener(op))
+          localOperationListeners.forEach((listener) => listener(op, before))
         }
         return changed
       }
