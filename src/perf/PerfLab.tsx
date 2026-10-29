@@ -85,7 +85,8 @@ export default function PerfLab({ boardId }: { boardId: ID }) {
   }
 
   async function benchmarkMoves(count: number): Promise<string> {
-    const durations: number[] = []
+    const mainThread: number[] = []
+    const toNextFrame: number[] = []
     resetRenderStats()
 
     for (let i = 0; i < count; i += 1) {
@@ -109,15 +110,23 @@ export default function PerfLab({ boardId }: { boardId: ID }) {
       withoutHistory(() =>
         useDomainStore.getState().moveCard(cardId, toColumnId, toIndex),
       )
-      await nextFrame() // time until the browser could draw the result
-      durations.push(performance.now() - start)
+      // React flushes store updates in a microtask. Wait for it, then force
+      // style + layout, so the number covers render, commit and layout.
+      await Promise.resolve()
+      await Promise.resolve()
+      document.body.getBoundingClientRect()
+      mainThread.push(performance.now() - start)
+
+      await nextFrame()
+      toNextFrame.push(performance.now() - start)
     }
 
-    const sorted = [...durations].sort((a, b) => a - b)
+    const cost = [...mainThread].sort((a, b) => a - b)
+    const frame = [...toNextFrame].sort((a, b) => a - b)
     const { commits, actualMs } = readRenderStats()
     const perMove =
-      commits > 0 ? `${(commits / count).toFixed(1)} commits per move` : ''
-    return `Moves (${count}): median ${ms(percentile(sorted, 0.5))}, p95 ${ms(percentile(sorted, 0.95))}, worst ${ms(sorted[sorted.length - 1] ?? 0)} to next frame; ${describeRender(commits, actualMs)}${perMove ? ` (${perMove})` : ''}.`
+      commits > 0 ? ` (${(commits / count).toFixed(1)} commits per move)` : ''
+    return `Moves (${count}): main-thread cost (render + layout) median ${ms(percentile(cost, 0.5))}, p95 ${ms(percentile(cost, 0.95))}, worst ${ms(cost[cost.length - 1] ?? 0)}; time to next frame median ${ms(percentile(frame, 0.5))}; ${describeRender(commits, actualMs)}${perMove}.`
   }
 
   async function benchmarkComments(count: number): Promise<string> {
