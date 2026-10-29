@@ -23,6 +23,27 @@ export function startSync(transport: Transport): () => void {
   let pending: Operation[] = []
   let synced = false // true once a snapshot arrived on the current connection
 
+  // A burst of remote changes (someone importing 200 cards) would bury the
+  // screen in toasts: show the first few, then one summary.
+  const BURST_LIMIT = 3
+  const BURST_QUIET_MS = 800
+  let burstCount = 0
+  let burstTimer: ReturnType<typeof setTimeout> | undefined
+
+  function announceRemote(notice: string): void {
+    burstCount += 1
+    if (burstCount <= BURST_LIMIT) toast.info(notice)
+    clearTimeout(burstTimer)
+    burstTimer = setTimeout(() => {
+      if (burstCount > BURST_LIMIT) {
+        toast.info(
+          `${burstCount - BURST_LIMIT} more changes were made by others.`,
+        )
+      }
+      burstCount = 0
+    }, BURST_QUIET_MS)
+  }
+
   const setConnection = useUIStore.getState().setConnection
   setConnection('offline')
 
@@ -88,7 +109,7 @@ export function startSync(transport: Transport): () => void {
         if (!isOwn && next !== confirmed) {
           // Someone else changed something: tell the user what, and who.
           const notice = describeOperation(op, confirmed, 'remote')
-          if (notice) toast.info(notice)
+          if (notice) announceRemote(notice)
         }
 
         confirmed = next
