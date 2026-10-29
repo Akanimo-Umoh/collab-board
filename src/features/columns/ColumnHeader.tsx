@@ -76,4 +76,3 @@ export const ColumnHeader = memo(function ColumnHeader({
     </div>
   )
 })
- 
