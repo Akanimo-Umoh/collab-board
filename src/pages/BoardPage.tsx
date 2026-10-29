@@ -4,16 +4,18 @@ import { ArrowLeftIcon } from '@/components/ui/icons'
 import { AddColumnForm } from '@/features/columns/AddColumnForm'
 import { Column } from '@/features/columns/Column'
 import { DeleteColumnDialog } from '@/features/columns/DeleteColumnDialog'
+import { DragAnnouncer } from '@/features/dnd/DragAnnouncer'
+import { DragPreview } from '@/features/dnd/DragPreview'
+import { cancelKeyboardDrag } from '@/features/dnd/keyboardDrag'
+import { cancelPointerDrag } from '@/features/dnd/pointerDrag'
+import { HistoryControls } from '@/features/history/HistoryControls'
+import { ConnectionStatus } from '@/features/realtime/ConnectionStatus'
+import { useHistoryShortcuts } from '@/history/useHistoryShortcuts'
 import { useBoard } from '@/store/hooks'
 import { useUIStore } from '@/store/ui/uiStore'
 import NotFoundPage from './NotFoundPage'
 import { CardModalHost } from '@/features/cards/CardModalHost'
 import { DeleteCardDialog } from '@/features/cards/DeleteCardDialog'
-import { cancelPointerDrag } from '@/features/dnd/pointerDrag'
-import { cancelKeyboardDrag } from '@/features/dnd/keyboardDrag'
-import { DragPreview } from '@/features/dnd/DragPreview'
-import { DragAnnouncer } from '@/features/dnd/DragAnnouncer'
-import { ConnectionStatus } from '@/features/realtime/ConnectionStatus'
 
 export default function BoardPage() {
   const { boardId = '' } = useParams()
@@ -21,7 +23,9 @@ export default function BoardPage() {
   const [announcement, setAnnouncement] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // Leaving the page must not leave a half-open edit, dialog, or delete prompt or drag behind.
+  useHistoryShortcuts(boardId)
+
+  // Leaving the page must not leave a half-open edit, dialog, delete prompt or drag behind.
   useEffect(() => {
     return () => {
       const ui = useUIStore.getState()
@@ -51,7 +55,7 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-56px)] flex-col py-8">
+    <div className="py-8">
       {/* Same content column as the header and dashboard */}
       <div className="mx-auto w-full max-w-6xl px-6">
         <Link
@@ -62,19 +66,22 @@ export default function BoardPage() {
           All boards
         </Link>
 
-        <div className="mt-4 mb-6 max-w-2xl">
-          <h1
-            ref={headingRef}
-            tabIndex={-1}
-            className="text-2xl font-semibold tracking-tight wrap-break-word text-ink focus:outline-none"
-          >
-            {board.title}
-          </h1>
-          {board.description && (
-            <p className="mt-1 text-sm wrap-break-word text-ink-muted">
-              {board.description}
-            </p>
-          )}
+        <div className="mt-4 mb-6 flex items-start justify-between gap-4">
+          <div className="max-w-2xl min-w-0">
+            <h1
+              ref={headingRef}
+              tabIndex={-1}
+              className="text-2xl font-semibold tracking-tight wrap-break-word text-ink focus:outline-none"
+            >
+              {board.title}
+            </h1>
+            {board.description && (
+              <p className="mt-1 text-sm wrap-break-word text-ink-muted">
+                {board.description}
+              </p>
+            )}
+          </div>
+          <HistoryControls />
         </div>
       </div>
 
@@ -82,7 +89,7 @@ export default function BoardPage() {
       data-board-scroller lets a drag auto-scroll it horizontally. */}
       <div
         data-board-scroller
-        className="flex flex-1 items-start gap-4 overflow-x-auto board-gutter pb-6"
+        className="flex items-start gap-4 overflow-x-auto board-gutter pb-6"
       >
         {/* Skipped when empty: an empty list would still claim a flex gap and a screen reader stop */}
         {board.columnIds.length > 0 && (
