@@ -16,6 +16,7 @@ export interface DragPreviewGeometry {
   offsetX: number
   offsetY: number
   width: number
+  height: number
 }
 
 export interface DragState {
