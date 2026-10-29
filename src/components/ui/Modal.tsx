@@ -47,7 +47,7 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         role="presentation"
-        className="absolute inset-0 bg-ink/40"
+        className="absolute inset-0 bg-scrim"
         onClick={onClose}
       />
 
