@@ -31,11 +31,11 @@ function ToastItem({ item }: { item: Toast }) {
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className="pointer-events-auto flex items-start gap-3 rounded-lg border border-border bg-surface p-3 shadow-modal motion-safe:transition motion-safe:duration-200 starting:translate-y-2 starting:opacity-0"
+      className="pointer-events-auto flex items-center gap-3 rounded-lg border border-border bg-surface p-3 shadow-modal motion-safe:transition motion-safe:duration-200 starting:translate-y-2 starting:opacity-0"
     >
       <span
         aria-hidden="true"
-        className={`mt-1.5 size-2 shrink-0 rounded-full ${DOT_CLASSES[item.tone]}`}
+        className={`size-2 shrink-0 rounded-full ${DOT_CLASSES[item.tone]}`}
       />
       <div
         role={item.tone === 'error' ? 'alert' : undefined}
@@ -70,7 +70,7 @@ export function ToastViewport() {
     <div
       aria-live="polite"
       aria-relevant="additions"
-      className="pointer-events-none fixed right-4 bottom-4 z-60 w-[calc(100%-2rem)] max-w-sm"
+      className="pointer-events-none fixed top-4 right-4 z-60 w-[calc(100%-2rem)] max-w-sm"
     >
       {toasts.length > 0 && (
         <ul className="flex flex-col gap-2">
