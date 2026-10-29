@@ -1,16 +1,29 @@
 /**
- * Index at which a dragged card would be inserted, given the vertical midpoints (top to bottom) of the OTHER cards in the column.
+ * Index at which a dragged card would be inserted, found by binary search
+ * over items ordered top to bottom. `midpointAt(i)` is read lazily, so
+ * callers measure the DOM only for the handful of items the search visits.
  */
+export function findInsertIndex(
+  count: number,
+  midpointAt: (index: number) => number,
+  pointerY: number,
+): number {
+  let low = 0
+  let high = count
+  while (low < high) {
+    const mid = (low + high) >>> 1
+    if (pointerY > midpointAt(mid)) low = mid + 1
+    else high = mid
+  }
+  return low
+}
+
+/** Same, for a plain list of midpoints (handy for tests). */
 export function getInsertIndex(
   midpoints: readonly number[],
   pointerY: number,
 ): number {
-  let index = 0
-  for (const midpoint of midpoints) {
-    if (pointerY <= midpoint) break
-    index += 1
-  }
-  return index
+  return findInsertIndex(midpoints.length, (i) => midpoints[i], pointerY)
 }
 
 /**
