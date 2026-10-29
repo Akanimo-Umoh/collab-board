@@ -2,13 +2,18 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { PlusIcon } from '@/components/ui/icons'
 import { BoardList } from '@/features/boards/BoardList'
+import { BoardListSkeleton } from '@/features/boards/BoardListSkeleton'
 import { CreateBoardDialog } from '@/features/boards/CreateBoardDialog'
 import { DeleteBoardDialog } from '@/features/boards/DeleteBoardDialog'
+import { useBoardOrder } from '@/store/hooks'
+import { useUIStore } from '@/store/ui/uiStore'
 
 export default function DashboardPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const boardCount = useBoardOrder().length
+  const syncing = useUIStore((s) => s.initialSync === 'pending')
 
   // After a board disappears, its delete button is gone too, so send focus somewhere stable.
   function handleDeleted(title: string) {
@@ -42,7 +47,11 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <BoardList onCreate={() => setIsCreating(true)} />
+      {syncing && boardCount === 0 ? (
+        <BoardListSkeleton />
+      ) : (
+        <BoardList onCreate={() => setIsCreating(true)} />
+      )}
 
       {isCreating && (
         <CreateBoardDialog

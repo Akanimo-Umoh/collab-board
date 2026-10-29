@@ -142,8 +142,10 @@
 
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeftIcon } from '@/components/ui/icons'
+import { ArrowLeftIcon, ColumnsIcon } from '@/components/ui/icons'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { AddColumnForm } from '@/features/columns/AddColumnForm'
+import { BoardSkeleton } from '@/features/columns/BoardSkeleton'
 import { Column } from '@/features/columns/Column'
 import { DeleteColumnDialog } from '@/features/columns/DeleteColumnDialog'
 import { DragAnnouncer } from '@/features/dnd/DragAnnouncer'
@@ -168,6 +170,7 @@ const PerfLab = lazy(() => import('@/perf/PerfLab'))
 export default function BoardPage() {
   const { boardId = '' } = useParams()
   const board = useBoard(boardId)
+  const syncing = useUIStore((s) => s.initialSync === 'pending')
   const [announcement, setAnnouncement] = useState('')
   const headingRef = useRef<HTMLHeadingElement>(null)
 
@@ -188,7 +191,10 @@ export default function BoardPage() {
   }, [])
 
   if (!board) {
-    return (
+    // A shared link can open before the first sync arrives: wait, don't say "not found".
+    return syncing ? (
+      <BoardSkeleton />
+    ) : (
       <NotFoundPage
         heading="Board not found"
         message="This board doesn't exist or may have been deleted."
@@ -205,7 +211,7 @@ export default function BoardPage() {
   return (
     // The board fills the viewport below the app header. The page never scrolls:
     // the board scrolls sideways, and each column scrolls its own cards.
-    <div className="mesh-bg flex h-[calc(100dvh_-_var(--app-header-h))] flex-col overflow-hidden">
+    <div className="mesh-bg flex h-[calc(100dvh-var(--app-header-h))] flex-col overflow-hidden">
       <div className="shrink-0 px-6 pt-5 pb-4">
         <div className="glass flex items-start justify-between gap-4 rounded-card px-4 py-3">
           <div className="min-w-0">
@@ -249,12 +255,22 @@ export default function BoardPage() {
             </ul>
           )}
 
-          <div className="glass w-72 shrink-0 self-start rounded-card">
-            <AddColumnForm
-              boardId={board.id}
-              columnCount={board.columnIds.length}
-              onAdded={(title) => setAnnouncement(`Column ${title} added.`)}
-            />
+          <div className="flex w-72 shrink-0 flex-col gap-3 self-start">
+            {board.columnIds.length === 0 && (
+              <EmptyState
+                className="bg-surface/90 py-8"
+                icon={<ColumnsIcon width={22} height={22} />}
+                title="No columns yet"
+                description="Columns are the stages of your workflow, like To do, In progress and Done. Add your first one."
+              />
+            )}
+            <div className="glass rounded-card">
+              <AddColumnForm
+                boardId={board.id}
+                columnCount={board.columnIds.length}
+                onAdded={(title) => setAnnouncement(`Column ${title} added.`)}
+              />
+            </div>
           </div>
         </div>
       </PerfProfiler>
