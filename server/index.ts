@@ -1,3 +1,4 @@
+import { createServer } from 'node:http'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { applyOperation, type DomainSnapshot } from '../src/realtime/operations'
 import {
@@ -11,7 +12,14 @@ const MAX_PAYLOAD_BYTES = 1024 * 1024
 const MAX_REMEMBERED_OPS = 5000
 const HEARTBEAT_MS = 30_000
 
-/* The authoritative state lives in memory: restarting the server resets it (the first client to reconnect seeds it again). */
+/** Comma-separated, e.g. https://my-app.vercel.app. Empty accepts any origin (local development). */
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+/* The authoritative state lives in memory: restarting the server resets it
+   (the first client to reconnect seeds it again). */
 let state: DomainSnapshot = {
   boardOrder: [],
   boards: {},
@@ -22,7 +30,8 @@ let state: DomainSnapshot = {
 }
 let rev = 0
 
-/* Recently seen operation IDs. A client that reconnects re-sends anything it never got an acknowledgement for; this keeps that harmless. */
+/* Recently seen operation IDs. A client that reconnects re-sends anything
+   it never got an acknowledgement for; this keeps that harmless. */
 const seenOpIds = new Set<string>()
 
 function remember(opId: string): void {
@@ -33,7 +42,25 @@ function remember(opId: string): void {
   }
 }
 
-const wss = new WebSocketServer({ port: PORT, maxPayload: MAX_PAYLOAD_BYTES })
+/* Plain HTTP answers the host's health check and the keep-alive pinger. */
+const httpServer = createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'content-type': 'text/plain' })
+    res.end('ok')
+    return
+  }
+  res.writeHead(404)
+  res.end()
+})
+
+const wss = new WebSocketServer({
+  server: httpServer,
+  maxPayload: MAX_PAYLOAD_BYTES,
+  verifyClient: ({ origin }) =>
+    ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin),
+})
+
+const alive = new WeakSet<WebSocket>()
 
 function send(socket: WebSocket, message: ServerMessage): void {
   if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message))
@@ -99,7 +126,6 @@ wss.on('connection', (socket) => {
 })
 
 /* Drop connections that stopped answering pings (closed laptops, dead networks). */
-const alive = new WeakSet<WebSocket>()
 setInterval(() => {
   for (const socket of wss.clients) {
     if (!alive.has(socket)) {
@@ -111,4 +137,6 @@ setInterval(() => {
   }
 }, HEARTBEAT_MS)
 
-console.log(`CollabBoard realtime server listening on ws://localhost:${PORT}`)
+httpServer.listen(PORT, () => {
+  console.log(`CollabBoard realtime server listening on port ${PORT}`)
+})
