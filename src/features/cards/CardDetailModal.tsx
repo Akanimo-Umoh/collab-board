@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { CommentSection } from '@/features/comments/CommentSection'
 import { formatDueDate } from '@/lib/date'
+import { diffCardPatch } from '@/realtime/operations'
 import { useDomainStore } from '@/store/domain/domainStore'
 import { useCard, useColumn } from '@/store/hooks'
 import { useUIStore } from '@/store/ui/uiStore'
@@ -28,7 +30,10 @@ export function CardDetailModal({
   const updateCard = useDomainStore((s) => s.updateCard)
   const requestDelete = useUIStore((s) => s.requestDelete)
 
-  const [editing, setEditing] = useState(false)
+  // The values the form started with. While this is set, the card is being edited.
+  // Keeping them lets us send only what THIS user changed, and keeps the form from resetting if someone else edits the card while it is open.
+  const [baseline, setBaseline] = useState<CardInput | null>(null)
+  const editing = baseline !== null
   const containerRef = useRef<HTMLDivElement>(null)
   const restoreFocus = useRef(false)
 
@@ -41,15 +46,38 @@ export function CardDetailModal({
       ?.focus()
   }, [editing])
 
+  // The card can vanish while this dialog is open (deleted from another session). Close the dialog, and move focus somewhere real: the card's button is gone, so focus would otherwise drop to <body>.
+  useEffect(() => {
+    if (card) return
+    onClose()
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>('h1')?.focus(),
+    )
+  }, [card, onClose])
+
   if (!card) return null
+
+  function startEditing() {
+    if (!card) return
+    setBaseline({
+      title: card.title,
+      description: card.description,
+      tags: card.tags,
+      dueDate: card.dueDate,
+    })
+  }
 
   function finishEditing() {
     restoreFocus.current = true
-    setEditing(false)
+    setBaseline(null)
   }
 
   function handleSave(input: CardInput) {
-    updateCard(cardId, input)
+    if (baseline) {
+      // Only the fields this user changed. The store compares again against the live card, so a field someone else edited meanwhile survives.
+      const patch = diffCardPatch(baseline, input)
+      if (patch) updateCard(cardId, patch)
+    }
     onAnnounce(`Card ${input.title} saved.`)
     finishEditing()
   }
@@ -62,14 +90,9 @@ export function CardDetailModal({
       size="lg"
     >
       <div ref={containerRef}>
-        {editing ? (
+        {baseline ? (
           <CardForm
-            initial={{
-              title: card.title,
-              description: card.description,
-              tags: card.tags,
-              dueDate: card.dueDate,
-            }}
+            initial={baseline}
             submitLabel="Save changes"
             focusTitleOnMount
             onSubmit={handleSave}
@@ -114,10 +137,12 @@ export function CardDetailModal({
               >
                 Delete card
               </Button>
-              <Button data-edit-trigger onClick={() => setEditing(true)}>
+              <Button data-edit-trigger onClick={startEditing}>
                 Edit card
               </Button>
             </div>
+
+            <CommentSection cardId={card.id} />
           </div>
         )}
       </div>
