@@ -1,5 +1,4 @@
 import { MAX_COMMENT_LENGTH } from '@/lib/comments'
-import { createId } from '@/lib/id'
 import { moveCardInState } from '@/lib/ordering'
 import { withoutKey } from '@/lib/records'
 import type {
@@ -31,6 +30,8 @@ interface OperationMeta {
   opId: ID
   /** When the user made the change. Carried in the operation so every replica writes the same timestamp. */
   at: string
+  /** Display name of whoever made the change (used for "Guest AB12 deleted…" notices). */
+  by: string
 }
 
 export type Operation = OperationMeta &
@@ -55,15 +56,7 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
   ? Omit<T, K>
   : never
 
-export type OperationInput = DistributiveOmit<Operation, 'opId' | 'at'>
-
-export function createOperation(input: OperationInput): Operation {
-  return {
-    ...input,
-    opId: createId(),
-    at: new Date().toISOString(),
-  } as Operation
-}
+export type OperationInput = DistributiveOmit<Operation, 'opId' | 'at' | 'by'>
 
 export const pickSnapshot = (s: DomainSnapshot): DomainSnapshot => ({
   boardOrder: s.boardOrder,
@@ -109,7 +102,10 @@ const sameTags = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((tag, i) => tag === b[i])
 
 /** Keeps only the fields that really differ, or null if nothing does. */
-export function diffCardPatch(card: Card, patch: CardPatch): CardPatch | null {
+export function diffCardPatch(
+  card: Pick<Card, 'title' | 'description' | 'tags' | 'dueDate'>,
+  patch: CardPatch,
+): CardPatch | null {
   const changes: CardPatch = {}
   let changed = false
 
