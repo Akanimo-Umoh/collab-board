@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { MAX_COMMENT_LENGTH } from '@/lib/comments'
+import { Textarea } from '@/components/ui/Input'
 
 interface CommentFormProps {
   /** Accessible name of the text box (also its placeholder). */
@@ -62,13 +63,13 @@ export function CommentForm({
       <label htmlFor={fieldId} className="sr-only">
         {label}
       </label>
-      <textarea
+      <Textarea
         id={fieldId}
         ref={textareaRef}
         rows={3}
         value={value}
         placeholder={label}
-        aria-invalid={error ? true : undefined}
+        invalid={Boolean(error)}
         aria-describedby={error ? errorId : undefined}
         onChange={(event) => {
           setValue(event.target.value)
@@ -88,10 +89,9 @@ export function CommentForm({
             submit()
           }
         }}
-        className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted"
       />
       {error && (
-        <p id={errorId} role="alert" className="text-xs text-red-600">
+        <p id={errorId} role="alert" className="text-xs text-danger-500">
           {error}
         </p>
       )}
