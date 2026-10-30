@@ -8,6 +8,13 @@ import { DRAG_START_DISTANCE } from './constants'
 import { dropCard } from './persistMove'
 import { describeCardPosition } from './positions'
 
+/** 'allowed' over a column, 'blocked' anywhere a drop would do nothing, null when not dragging. */
+function setDragCursor(state: 'allowed' | 'blocked' | null): void {
+  const root = document.documentElement
+  if (state === null) delete root.dataset.dndCursor
+  else if (root.dataset.dndCursor !== state) root.dataset.dndCursor = state
+}
+
 let cancelActiveDrag: (() => void) | null = null
 
 /** Abort a pointer drag in progress (used when the board page unmounts). */
@@ -129,7 +136,7 @@ export function beginPointerDrag(
       },
     })
     document.body.style.userSelect = 'none'
-    document.body.style.cursor = 'grabbing'
+    setDragCursor('allowed')
     return true
   }
 
@@ -150,6 +157,7 @@ export function beginPointerDrag(
     const drag = ui.drag
     if (!drag) return
     const target = resolveTarget(x, y, cardId)
+    setDragCursor(target ? 'allowed' : 'blocked')
     const isNoop =
       target !== null &&
       target.columnId === drag.origin.columnId &&
@@ -199,7 +207,7 @@ export function beginPointerDrag(
     dragging = false
 
     document.body.style.userSelect = ''
-    document.body.style.cursor = ''
+    setDragCursor(null)
 
     const ui = useUIStore.getState()
     const drag = ui.drag
