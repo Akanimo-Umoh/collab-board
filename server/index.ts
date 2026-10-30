@@ -76,6 +76,9 @@ wss.on('connection', (socket, request) => {
     return
   }
 
+  alive.add(socket) // a fresh connection counts as alive
+  socket.on('pong', () => alive.add(socket)) // each pong proves it is still alive
+
   socket.on('message', (data) => {
     const message = parseClientMessage(data.toString())
     if (!message) return
