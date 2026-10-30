@@ -4,6 +4,8 @@ A collaborative workspace for managing ideas and execution. Boards hold columns,
 
 **Live demo:** [CollabBoard](https://collab-board-rho-seven.vercel.app/) (open it in two tabs to see real-time sync; each tab is a different anonymous guest)
 
+> **Note:** the WebSocket server runs on Render's free tier, which sleeps after inactivity. If sync looks dead on the first load, wait 30 to 60 seconds for the server to wake up. The app shows skeletons, then falls back to local data after 8 s and resyncs once the server answers.
+
 > **Stage 2** evolves the Stage 1 board system into a collaboration-ready product. Nothing was rebuilt from scratch: the normalized state, the folder layout and the component design carry over. What changed, and why, is documented in [Architecture evolution](#architecture-evolution).
 
 ## Contents
@@ -63,7 +65,26 @@ pnpm typecheck:server
 
 If `VITE_WS_URL` is not set, the app runs in **local-only mode**: no connection is attempted, the connection badge is hidden, and data lives in `localStorage` as in Stage 1.
 
-**Deployment:** the web app is a static Vite build on Vercel (`VITE_WS_URL` is set as a Vercel environment variable, using `wss://` because the site is served over HTTPS). The WebSocket server is a small Node process (`server/index.ts`) deployed separately. It exposes `GET /health` for the host's health check and supports an `ALLOWED_ORIGINS` environment variable (comma-separated) to refuse WebSocket connections from unknown pages.
+**Deployment**
+
+| Part | Host | Notes |
+| --- | --- | --- |
+| Web app | Vercel (static Vite build) | `VITE_WS_URL` is set as a Vercel environment variable |
+| WebSocket server | Render (Node web service running `server/index.ts`) | Deployed separately from the web app |
+
+Environment variables:
+
+| Variable | Where | Value |
+| --- | --- | --- |
+| `VITE_WS_URL` | Vercel | `wss://<your-service>.onrender.com` (no path, no trailing slash). Must be `wss://`, because the site is served over HTTPS. |
+| `PORT` | Render | Set automatically by Render. The server listens on `process.env.PORT`, falling back to 8787 locally. |
+| `ALLOWED_ORIGINS` | Render (optional) | Comma-separated list of allowed origins, e.g. `https://collab-board-rho-seven.vercel.app`. Include any custom domain. Preview deployment URLs will not match unless listed. |
+
+Things to know:
+
+- **`VITE_WS_URL` is inlined at build time.** After adding or changing it in Vercel, trigger a redeploy for it to take effect.
+- **Health check:** the server exposes `GET /health`. Point Render's health check at it.
+- **Keeping the server awake:** free Render services spin down when idle, and a spin-down resets in-memory state (the next client to reconnect re-seeds it). To keep it warm, use a paid instance or an uptime monitor that pings `/health` every few minutes. WebSocket traffic alone does not count as keep-alive.
 
 ## Folder structure
 
@@ -498,7 +519,7 @@ The honest limit: with the current server, a few dozen concurrent users on one w
 ## Known limitations
 
 - Real-time state is held in server memory; restarting the server resets it (the first reconnecting client re-seeds it).
-- A free-tier host may take several seconds to wake up; the app shows skeletons, then falls back to local data after 8 s and resyncs when the server answers.
+- The WebSocket server is on Render's free tier, so it can take 30 to 60 seconds to wake after idling. The app shows skeletons, then falls back to local data after 8 s and resyncs when the server answers. A spin-down also resets the in-memory server state until the first client reconnects and re-seeds it.
 - Identity is an anonymous guest per tab, not real authentication.
 - Concurrent edits to the same card description overwrite each other (see [conflict handling](#conflict-handling-what-happens-if-two-users-edit-the-same-card)).
 - Undo / redo covers cards (create, delete, move, edit) only.
