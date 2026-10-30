@@ -2,7 +2,7 @@ export function RouteFallback() {
   return (
     <div
       role="status"
-      className="flex min-h-[40dvh] items-center justify-center gap-3 text-sm text-ink-muted"
+      className="flex min-h-[calc(100dvh-56px)] items-center justify-center gap-3 text-sm text-ink-muted"
     >
       <span
         aria-hidden="true"
