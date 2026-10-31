@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
